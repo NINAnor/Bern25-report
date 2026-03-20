@@ -1,10 +1,30 @@
 ---
-title: "Bern25 summary charts"
+title:    "Assessing the conservation status of Norwegian species and habitats for the Bern Convention in 2025"
+subtitle: "version 20.03.2026 (Draft)"
+author: 
+  - Balint Czucz
+  - Duncan Halley
+  - Kwaku Peprah Adjei
+  - Fia Bengtsson
+  - Kim Magnus Bærum
+  - Joseph Chipperfield
+  - Jiska van Dijk
+  - Børre Dervo
+  - Nina E. Eide
+  - Anders Endrestøl
+  - Duncan Halley
+  - Hanne Hegre
+  - Anders Kolstad
+  - Jon H. Magerøy
+  - Jan Ketil Rød
+  - Heidi Solstad
+  - Ole Gunnar Støen
+  - Joachim Paul Töpper
+  - Signe Nybø
+
 format: html
 ---
-  <!-- html: -->
-  <!--   page-layout: full -->
-
+ 
 ```{r}
 #| label: setup
 #| include: false
@@ -18,10 +38,8 @@ library(gt)
 # 260311  - initial version 
 # 260315  - almost complete report 
 # 260316  - moved to dedicated project 
+# 260320  - complemented with intro & success story
 ```
-
-
-## The scope of the reporting
 
 ```{r}
 #| label: read_data
@@ -111,7 +129,31 @@ dat$ha <- tmp1 %>% filter(str_detect(t_ver, "^ha")) %>% unnest(tabs) %>%
   relocate(ftid, bgr, fgrp, exp0, occ1, ft_name0, status)
 ```
 
-There were altogether 72 *species* and 6 *habitat types* involved in the assessment (@tbl-fgrp). Species and habitat types are collectively called *features* so there were altogether 78 features assessed. (*TODO: explain BGRs, assessments (feature x BGR), Emerald, etc...*) 
+
+## Context and purpose
+
+The Bern Convention, adopted in 1979, is an international treaty aimed at conserving wild plant and animal species and their natural habitats in several non-EU European and North-African countries. It legally binds its member countries to protect over 1,000 animal species and 500 plant species, focusing on species and habitats that require cross-border cooperation. A relatively new amendment (Resolution 8, 2012) extended the Bern Convention with a network of Emerald sites and the implementation of management, monitoring, and reporting measures for them. The Emerald Network is the Pan-European equivalent of the EU's Natura 2000 network, and this resolution provides the framework for how countries designate and manage these ecological sites. In Norway the Emerald sites largely (but not entirely) correspond to the other existing protected areas (see @fig-bgr-emerald). 
+
+```{r}
+#| label: fig-bgr-emerald
+#| fig-cap: "The four EU biogeographical regions (BGR), and the Emerald Network in Norway"
+#| out-width: "100%"
+#| fig-align: "center"
+#| echo: false
+#| warning: false
+
+knitr::include_graphics(here::here("img","bgr_emerald.png"))
+```
+
+According to *Resolution 8* (2012), every country must perform regular reporting about a selection of *species* and *habitat types*. The structure and content of the reporting, as well as its timing follows very closely the so-called “Article 17 reporting” of the EU Habitats Directive. Furthermore, both reporting processes have a *6-year cycle*, which means that for the Bern Convention countries the 2025 reporting is their second reporting altogether (the first, relatively limited reporting took place in 2019). The main purpose of the whole reporting is to assess the “*conservation status*” of the selected species and habitats in a semi-standardised way, based on the best available data and evidence.
+
+
+## The scope of the reporting
+
+The heart of the Resolution 8 reporting consists of a series of detailed assessments that address a number of pre-selected, species, habitat types and *biogeographic regions* (BGR, see @fig-bgr-emerald). For 2025 Norway received a “checklist” consisting of 74 *species* and 6 *habitat types*, which are often also called *features* collectively. Each of these features was pre-selected for assessment in one or more of the four EU biogeographic regions (BGR) that intersect the territory of the country (altogether 156 *assessments*). Eventually, the presence of two species was not confirmed by the experts,[^1] and for several species the list of biogeographic regions was also changed,  were identified, which resulted in a final set of 72 *species* 6 *habitat types* 157 "full" and 9 partial *assessments* (@tbl-fgrp).[^2] In addition to The full list of the species assessed and the main assessment conclusions will be presented in an Annex (TODO!!).   
+
+[^1]: Stag beetle (*Lucanus cervus*) was never observed in Norway, and the orchid *Liparis loeselei* was extinct too long ago to be relevant for the Bern Convention.  
+[^2]: Partial assessments have a significantly limited data content without conclusions. Such assessments are allowed for species and habitats only *marginally* present in a biogeographic region (MAR), as well as for *occasionally* occurring (OCC) and *newly arriving* species (ARR).  
 
 ```{r}
 #| label: tbl-fgrp
@@ -558,7 +600,7 @@ Overall short-term (2013-2024) trends identified during the 2025 assessments. To
 
 ### Long term trends 
 
-In this reporting round, *long-term trends* were only assessed for some of the parameters (range & population size for species, and range and area for habitat types), and only in cases when the expert were long-term evidence was available. These cases  means that...  ... @tbl-xxxx provides an overview of the 
+In this reporting round, *long-term trends* were only assessed for some of the parameters (range & population size for species, and range and area for habitat types), and only in cases when the expert were long-term evidence was available. These cases  means that...  ... @tbl-xxxx provides an overview of the ... (TODO!)
 
 
 ### Changes since 2019
@@ -838,20 +880,51 @@ tmp1.meas %>%
 
 ```
 
-## Fjellrev: a success story
 
-TBC...
+## Bevaring av fjellreven en suksess – tidobling av bestanden
+
+Fjellreven har lenge vært kritisk truet i Norge. Arten ble fredet allerede i 1930, men fortsatte å gå tilbake. Bestanden var trolig allerede da for liten til å respondere positivt på vern, samtidig ble det observert store endring i smågnagerdynamikken og økt forekomst av rødrev på tundraen, som kan ha påvirket fjellreven negativt. 
+Rundt 2000 antok man at bestanden bare talte 40-60 voksne individer i Norge, Sverige og Finland til sammen. Arten var da svært nær å bli utryddet. Med bakgrunn i den første handlingsplanen for arten, kom tiltakene i Norge i gang fra 2005. Avlsprogrammet for fjellrev ble da etablert på fjellet og har per nå satt ut over 500 fjellrev. I tillegg til å reetablere fem utdødde norske delbestander har utsatte fjellrever bidratt til å styrke mange av de gjenværende delbestandene i Fennoskandia og også medført reetablering i Finland. Det ble da også satt i gang støttefôring, og det er per nå mer enn 150 fôrautomater i drift gjennom hele året i så godt som hele utbredelsen. Det tredje tiltaket, systematisk uttak av rødrev, gjøres bare i den nordligste delen av utbredelsen, og ellers bare der rødreven er i direkte konkurranse med fjellreven. Tiltakene har resultert i en tidobling av bestanden, nå beregnet til å være over 300 voksne fjellrev i Norge. Som følge av det ble fjellreven listet til sterkt truet i 2021 (@fig-fjellrev-bestand). 
+
+I Norge finnes fjellreven bare i det alpine og arktiske biomet, hvorav 85-90% i det alpine tundrabiomet. Bare 10-15% av bestanden finnes utenfor Emerald nettverket. Beskyttelsen verneområdene er gitt, blant annet gjennom strenge restriksjoner på utbygging av infrastruktur, anlegg og bygninger har trolig bidratt sterkt til at det fortsatt er bæreevne for fjellrev i disse områdene. Restriksjoner på utbygging i store deler av tundrabiomet gjør at områdene beholder sin naturlige marginalitet som høyfjellsartene er særdeles godt tilpasset. Økt menneskelig aktivitet fører alltid med seg høyere tetthet av generalistarter, blant annet rødrev,  som kan fortrenge fjellreven om den opptrer i høye tettheter.   
+
+```{r}
+#| label: fig-fjellrev-bestand
+#| fig-cap: "Estimert bestandsstørrelse (med 95 % konfidensintervaller) for fjellrev i Norge i perioden 2008–2025, basert på en lukket fangst-gjenfangst modell bygget på innsamlet DNA-materiale i den samme perioden. Rød linje viser glidende gjennomsnitt over 3-årsperioder. Merk at gjennomsnittses-timatene er sentrert, dvs. estimatet for 2023–2025 vises som estimat på 2024 i figuren. (Fra Jackson mfl. 2025)"
+#| out-width: "90%"
+#| fig-align: "center"
+#| echo: false
+#| warning: false
+
+knitr::include_graphics(here::here("img","fjellrev_bestand.png"))
+```
+
+Vern av leveområdene, omfang og ikke minst varigheten av tiltakene har vært avgjørende for suksessen av bevaringsarbeidet. Tross suksessen og tidoblingen, er fjellrevbestanden fortsatt langt fra å være levedyktig, blant annet på grunn av lav konnektivitet og utfordringer med innavl. Forskerne anslår at tiltakene må vedvare med samme intensitet 10-15 år til, før man kan begynne å trappe ned arbeidet. 
+Bevaringsarbeidet er finansiert av Miljødirektoratet, tidvis med bidrag fra InterReg. Det praktiske arbeidet gjøres i hovedsak av Statens naturoppsyn, NINA har ansvar for den faglige koordineringen av tiltakene og overvåking av bestanden, samt drift av avlsprogrammet (@fig-fjellrev-photo). 
+
+```{r}
+#| label: fig-fjellrev-photo
+#| fig-cap: "Utsetting av fjellrev i Hardangervidda nasjonalpark, en del av Emerald Nettverket (Foto: Toralf Mjøen, Avlsprogrammet, NINA)"
+#| out-width: "90%"
+#| fig-align: "center"
+#| echo: false
+#| warning: false
+
+knitr::include_graphics(here::here("img","fjellrev_photo.jpeg"))
+```
 
 
 ## Data availability
 
-(?) TBD/TBC...
+(?) TODO/TBC...
 
 
 ## References
+
+* Jackson, C., Ulvund, K., Rød-Eriksen L., Furnes, M.W., Arntsen, L., Mjøen, T., Spets, M., Jensen, M.Ø., Kleven, O., Flagstad, Ø. & Eide, N.E. 2025. Fjellrev i Norge 2025 - Tiltak, status og anbe-falinger. NINA Rapport 2698. Norsk institutt for naturforskning.
+* TODO...
 
 
 ## Annexes
 
 * A table with all species & habitats (incl latin names) and their main conclusions
-* (??) A list of simple “conclusion figures” for each species & habitat (one per page)
