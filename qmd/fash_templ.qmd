@@ -1,0 +1,167 @@
+---
+format: typst
+fontsize: 10pt
+params:
+  data:
+    value: null
+  plotfile:
+    value: null
+---
+
+```{r}
+#| label: init 
+#| include: false
+
+library(tidyverse)
+library(gt)
+
+# dummy data for testing
+dat0 <- if (!exists("params") || is.null(params$data)) {
+  list(                                                         
+    titl = "1111 Example species",
+    head = tibble(name = c("Relevant synonyms", "Norwegian name", "Feature group", "Expert(s)", "Date"),
+                  value = c("xxxxx", "yyyyy", "Invertebrates", "Balint Czucz", "2026-03-19")),
+    body = list(
+      BOR = list(
+        Occ = list(status = "PRE", x2 = "Checklist comment"),
+        OvC = list(status = "U1", trend = "D", x1 = "Equipment inspection passed on Monday", x2 = "Awaiting new sensor delivery"),
+        Ran = list(status = "FV", trend = "U", x1 = "Equipment inspection passed on Monday", x2 = "Awaiting new sensor delivery"),
+        SnF = list(status = "U1", trend = "S"),
+        H4s = list(status = "U2", trend = "I"),
+        Fpr = list(status = "XX")),
+      ARC = list(
+        Occ = list(status= "MAR", x2 = "Checklist comment"),
+        Pop = list(status = "XX", trend = "U"))),
+    tail = list(
+      pres = c("PA11: xxxxx (BOR)", "PB22: xxxxx (ATL, ARC)"),
+      meas = c("MA11: xxxxx (BOR)", "MB22: xxxxx (ATL, ARC)"),
+      srcs = c("Xyz (2022): XXX", "Xy, Zz (2023): YYyy", "Xyz (2024): ZzX"))
+    )} else params$data
+# dat0 <- params$data
+# dat0 <- pp$data
+f_plot <- params$plotfile
+
+# constants (code labels)
+l_bgrs <- c(ALP="Alpine", ARC="Arctic", ATL="Atlantic", BOR="Boreal")
+l_prms <- c(Occ="Occurrence status", OvC="Overall conclusion", Ran="Range", Pop="Population", Are="Area of habitat", 
+            H4s="Habitat for species", SnF="Structure and function", Fpr="Future prospects")
+l_occs <- c(PRE="Present regularly", EXa="Species extinct after 1982", TAX="Taxonomical uncertainty",
+            MAR="Marginal", OCC="Occasional", ARR="Newly arriving species", SCR="Scientific reserve") 
+            # DEL="Delete", NTA= "Taxonomical error", EXp="Species extinct before 1982") # not reported (NTA shd be NTAX, btw)
+l_ccls <- c(FV="Favourable", U1="Unfavourable - inadequate", U2="Unfavourable - bad", XX="Unknown")
+l_ccli <- c(FV="🟢", U1="🟡", U2="🔴", XX="⚪")
+l_trds <- c(I="Improving", S="Stable", D="Deteriorating", U="Unknown")
+l_trdi <- c(I="`#text(font: \"Segoe UI Emoji\")[↗️]`{=typst}", S="➡️", 
+            D="`#text(font: \"Segoe UI Emoji\")[↘️]`{=typst}", U="⏹️")
+# l_trdi <- c(I= '[↗\ ]{style="color: green;"}', S= '[→]{style="color: orange;"}',
+#             D= '[↘\ ]{style="color: red;"}',   U= '[\ ◌\ ]{style="color: gray;"}')
+l_bgrs2 <- l_bgrs %>% imap_chr(\(x,i) str_c(x," (",i,")"))
+l_occs2 <- l_occs %>% imap_chr(\(x,i) str_c(x," (",i,")"))
+l_ccls2 <- l_ccls %>% imap_chr(\(x,i) str_c(l_ccli[i]," ", x," (",i,")"))
+l_ccls3 <- l_ccls %>% imap_chr(\(x,i) str_c(l_ccli[i]," **", x," (",i,")**")) #boldface, for the overall conclusion
+l_trds2 <- l_trds %>% imap_chr(\(x,i) str_c(l_trdi[i]," ", x))
+l_trds3 <- l_trds %>% imap_chr(\(x,i) str_c(l_trdi[i]," **", x,"**"))
+
+blank <- ":::{}\ \n:::"
+ticks <- paste0("`","`","`")
+
+# helpers
+h_cat_status <- function(prm, ccl=NULL, trd=NULL, bullets=NULL) { # print out an assessment parameter "asis" 
+  cat(":::{layout=\"[6,8,4]\"}\n\n")
+  cat(str_c("**", prm,"**\n\n"))
+  cat(str_c(if(length(ccl)) ccl else blank, "\n\n"))
+  cat(str_c(if(length(trd)) trd else blank, "\n\n"))
+  cat(":::\n\n")
+  cat(str_c(ticks,"{=typst}\n#v(-1em)\n",ticks,"\n\n")) # reduce the gap (ignored in html)
+  if (length(bullets)) {
+    cat(str_c(ticks,"{=typst}\n#set list(indent: 1em)\n#set text(size: 9pt)\n",ticks,"\n\n")) #indent & downsize the bullets 
+    walk(bullets, \(i) cat(paste0("* ", i, "\n")))
+    cat(str_c(ticks,"{=typst}\n#set list(indent: 0em)\n#set text(size: 10pt)\n",ticks,"\n\n")) #reset style
+    }
+  }
+```
+
+```{r}
+#| label: titl-asis #just print the title
+#| echo: false
+#| results: "asis"
+
+cat(paste0("# ", dat0$titl, "\n\n"))
+```
+
+```{r}
+#| label: head 
+#| echo: false
+
+dat0$head %>% 
+  as_tibble %>%
+  gt() %>%
+  tab_options(data_row.padding = px(3), column_labels.hidden = TRUE)
+```
+
+```{r}
+#| label: body-asis 
+#| echo: false
+#| results: "asis"
+
+# ii="BOR"
+for (ii in names(dat0$body)) {
+  dat1 <- dat0$body[[ii]]
+  cat(paste0("## ", l_bgrs2[ii], "\n\n")) # subheading for the BGR 
+  # jj="Occ"
+  for (jj in names(dat1)) {
+    pp <- dat1[[jj]]
+    prm <- l_prms[jj]
+    ccl <- c((if (jj=="OvC") l_ccls3 else l_ccls2), l_occs2)[pp$status]
+    trd <- (if (jj=="OvC") l_trds3 else l_trds2)[pp$trend]
+    bullets <- pp[!(names(pp) %in% c("status", "trend"))] %>% unlist 
+    h_cat_status(prm=prm, ccl=ccl, trd=trd, bullets=bullets)
+    }
+  cat(str_c(ticks,"{=typst}\n#v(1.5em)\n",ticks,"\n\n")) # add gap 
+  }
+
+```
+
+
+```{r}
+#| label: tail-asis 
+#| echo: false
+#| results: "asis"
+
+if (length(dat0$tail$pres)) {
+  cat(paste0("### Pressures \n\n"))  
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0.5em)\n#set text(size: 9pt)\n",ticks,"\n")) #indent & downsize the bullets 
+  walk(dat0$tail$pres, \(i) cat(paste0("* ", i, "\n")))
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0em)\n#set text(size: 10pt)\n",ticks,"\n\n")) #reset style
+  }
+if (length(dat0$tail$meas)) {
+  cat(paste0("### Conservation measures \n\n"))  
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0.5em)\n#set text(size: 9pt)\n",ticks,"\n")) #indent & downsize the bullets 
+  walk(dat0$tail$meas, \(i) cat(paste0("* ", i, "\n")))
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0em)\n#set text(size: 10pt)\n",ticks,"\n\n")) #reset style
+  }
+if (length(dat0$tail$srcs)) {
+  cat(paste0("### Data sources, references \n\n"))  
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0.5em)\n#set text(size: 9pt)\n",ticks,"\n")) #indent & downsize the bullets 
+  walk(dat0$tail$srcs, \(i) cat(paste0("* ", i, "\n")))
+  cat(str_c(ticks,"{=typst}\n#set list(indent: 0em)\n#set text(size: 10pt)\n",ticks,"\n\n")) #reset style
+  }
+
+```
+
+
+```{r}
+#| label: plot-map
+#| echo: false
+#| warning: false
+#| fig-width: 6.3        # Physical width in inches
+#| fig-height: 9.7       # Physical height in inches
+#| out-width: "100%"   # How much page space it takes up
+
+# fig-cap: "Dynamic plot generated by the orchestrator script."
+
+if (!is.null(f_plot)) f_plot %>%
+    read_rds %>%
+    print
+
+```
