@@ -1,0 +1,481 @@
+% Options for packages loaded elsewhere
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  10pt,
+  letterpaper,
+  DIV=11,
+  numbers=noendperiod]{scrartcl}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+% Make \paragraph and \subparagraph free-standing
+\makeatletter
+\ifx\paragraph\undefined\else
+  \let\oldparagraph\paragraph
+  \renewcommand{\paragraph}{
+    \@ifstar
+      \xxxParagraphStar
+      \xxxParagraphNoStar
+  }
+  \newcommand{\xxxParagraphStar}[1]{\oldparagraph*{#1}\mbox{}}
+  \newcommand{\xxxParagraphNoStar}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+  \let\oldsubparagraph\subparagraph
+  \renewcommand{\subparagraph}{
+    \@ifstar
+      \xxxSubParagraphStar
+      \xxxSubParagraphNoStar
+  }
+  \newcommand{\xxxSubParagraphStar}[1]{\oldsubparagraph*{#1}\mbox{}}
+  \newcommand{\xxxSubParagraphNoStar}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+\makeatother
+
+
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+
+
+
+
+
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+
+
+ 
+
+
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{anyfontsize}
+\usepackage{multirow}
+\KOMAoption{captions}{tableheading}
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table of contents}
+\else
+  \newcommand\contentsname{Table of contents}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{List of Figures}
+\else
+  \newcommand\listfigurename{List of Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{List of Tables}
+\else
+  \newcommand\listtablename{List of Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={Blue},
+  pdfcreator={LaTeX via pandoc}}
+
+
+\author{}
+\date{}
+\begin{document}
+
+
+\section{1981: Cynodontium suecicum}\label{cynodontium-suecicum}
+
+\begin{table}
+\fontsize{12.0pt}{14.0pt}\selectfont
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ll}
+\toprule
+name & value \\ 
+\midrule\addlinespace[2.5pt]
+Relevant synonyms & --- \\ 
+Norwegian name & Storskortemose \\ 
+Feature group & Mosses \\ 
+Expert(s) & Fia Bengtsson \\ 
+Date & 2025-12-09 \\ 
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsection{Alpine (ALP)}\label{alpine-alp}
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Occurrence status}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+Present regularly (PRE)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Overall conclusion}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 \textbf{Favourable (FV)}\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ \textbf{Stable}\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Range}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Population}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Habitat for species}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Future prospects}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\subsection{Atlantic (ATL)}\label{atlantic-atl}
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Occurrence status}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+Present regularly (PRE)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Overall conclusion}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 \textbf{Favourable (FV)}\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ \textbf{Stable}\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Range}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Population}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Habitat for species}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Future prospects}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\subsection{Boreal (BOR)}\label{boreal-bor}
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Occurrence status}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+Present regularly (PRE)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Overall conclusion}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 \textbf{Favourable (FV)}\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ \textbf{Stable}\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Range}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Population}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Habitat for species}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+➡️ Stable\end{minipage}%
+
+\end{figure}%
+
+\begin{figure}
+
+\begin{minipage}{0.33\linewidth}
+\textbf{Future prospects}\end{minipage}%
+%
+\begin{minipage}{0.44\linewidth}
+🟢 Favourable (FV)\end{minipage}%
+%
+\begin{minipage}{0.22\linewidth}
+\end{minipage}%
+
+\end{figure}%
+
+\subsubsection{Pressures}\label{pressures}
+
+\begin{itemize}
+\tightlist
+\item
+  PB19: Forestry activities generating pollution to surface or ground
+  waters (including marine) {[}ALP, ATL, BOR{]}
+\item
+  PJ01: Temperature changes and extremes due to climate change {[}ALP,
+  ATL, BOR{]}
+\item
+  PJ03: Changes in precipitation regimes due to climate change {[}ALP,
+  ATL, BOR{]}
+\end{itemize}
+
+\subsubsection{Conservation measures}\label{conservation-measures}
+
+\begin{itemize}
+\tightlist
+\item
+  PB19: Forestry activities generating pollution to surface or ground
+  waters (including marine) {[}ALP, ATL, BOR{]}
+\item
+  PJ01: Temperature changes and extremes due to climate change {[}ALP,
+  ATL, BOR{]}
+\item
+  PJ03: Changes in precipitation regimes due to climate change {[}ALP,
+  ATL, BOR{]}
+\end{itemize}
+
+\subsubsection{Data sources, references}\label{data-sources-references}
+
+\begin{itemize}
+\tightlist
+\item
+  PB19: Forestry activities generating pollution to surface or ground
+  waters (including marine) {[}ALP, ATL, BOR{]}
+\item
+  PJ01: Temperature changes and extremes due to climate change {[}ALP,
+  ATL, BOR{]}
+\item
+  PJ03: Changes in precipitation regimes due to climate change {[}ALP,
+  ATL, BOR{]}
+\end{itemize}
+
+
+
+
+\end{document}

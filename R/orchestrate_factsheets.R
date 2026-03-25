@@ -7,30 +7,29 @@
 ###########################################
 
 ### Changelog:
-# 260320  - initial version 
-#
+# 260320  - initial version: feature factsheets (parametric qmd)  
 
 library(quarto)
 library(tidyverse)
 library(glue)
 library(sf)
 library(fs)
-library(gt)
+# library(gt)
 
 ninaServer <- F
 pdrive <- if(ninaServer) "~/Mounts/P-Prosjekter2/112549_bern_2025" else "P:/112549_bern_2025"
-ahome <-  "assessment" %>% path(pdrive, .) # working dir for the experts
+# ahome <-  "assessment" %>% path(pdrive, .) # working dir for the experts
 tpldir0 <- "data/_templates" %>% path(pdrive, .) # working dir for templates
-sthome <- "data/st_all" %>% path(pdrive, .) # a repo folder for the "full" contents of all "simple templates" (st)
+# sthome <- "data/st_all" %>% path(pdrive, .) # a repo folder for the "full" contents of all "simple templates" (st)
 jsonhome <- "../Bern25-harvest/out/" # the home of the json files harvested from the simple templates (...does not work on NINA server!!!)
 gishome <- "data/gis" %>% path(pdrive, .) # diverse input gis data
 maphome <- "data/maps" %>% path(pdrive, .) # output maps  
 logdir <- "data/xlsx_log" %>% path(pdrive, .) # a repo folder for the "full" contents of all "simple templates" (st)
-fashdir <- "output/fash_test_1" #folder for the factsheets
-# debug <- F # extra diagnostics
+fashdir <- format(Sys.time(), "%y%m%d") %>% path("output/factsheets", .) #folder for the factsheets 
 
 dir_create(fashdir)
 f_templ <- "qmd/fash_templ.qmd"
+# debug <- F # extra diagnostics
 
 ### extra typologies
 fgrps_en <- c(ma= "Mammals", fa= "Fishes & amphibians", im= "Insects and molluscs",
@@ -43,13 +42,6 @@ h_lkp <- function(x, tab) { # generic lookup (x: any vec; tab: a df or mat w col
   } 
 h_cap1st <- function(x) x %>% #capitalise just the first letters of a chr vector (all subsequent letters kept)
   str_sub(1,1) %>% toupper %>% str_c(str_sub(x,2)) 
-# h_ensure_cols <- function(x, cols, typ="") { # make sure that columns _cols_ exist in _x_ 
-#   new_cols <- cols[!cols %in% names(x)]      # (create them with NAs (of the type of typ) if needed)
-#   ret <- typ %>% c(NA, .) %>% {.[1]} %>% 
-#     rep(length(new_cols)) %>% set_names(new_cols) %>% 
-#     as.list %>% bind_cols(x, .)
-#   ret <- if (nrow(x)!=0L) ret else slice(ret, -1)
-#   ret}
 h_oie <- function(x, y=NULL) { #"only if exists": if x=="" or NA or NULL then return y (=NULL) else return x[1]
   if (is.null(x) || is.na(x[1]) || x[1]=="") y else x[1]
   }
@@ -80,7 +72,8 @@ fds$ha <- tmp %>% keep_at(\(i) str_detect(i,"^ha")) %>% pluck(-1) %>% select(-ic
 tmp <- chklw %>%
   with(str_c("b25_", exp0,"_", ftid, ".json")) %>% 
   path(jsonhome, .) %>%
-  map(\(x) jsonlite::read_json(here::here(x)))
+  map(possibly(\(x) jsonlite::read_json(here::here(x)), otherwise=NULL)) %>%
+  discard(is.null)
 
 tmp1 <- tibble(ftid=  map_chr(tmp, \(x) pluck(x, 1, "ftid"))) %>%
   # mutate(ft_name0=   map_chr(tmp, \(x) pluck(x, 1, "ft_name0"))) %>%
@@ -144,19 +137,18 @@ pal_bgr <- colorspace::qualitative_hcl(4, palette = "Dark 3") %>%
 #       ..$srcs: chr() with sources (one by one)
 
 
-# ii="1981"; jj="BOR"
-for (ii in chklw$ftid[17:nrow(chklw)]) { #[(1:10)*7]) {
+# ii="D41"; jj="BOR"
+for (ii in chklw$ftid) { #[(1:10)*7]) {
   cw <- chklw %>% filter(ftid==ii)
+  if (cw$bgr_i2025_final=="") next # 1083 Lcervus & 1903 L loeselei kiejtese
   d0 <- dat %>% pluck(cw$ftt) %>% filter(ftid==ii)
-  if (nrow(d0)==0L) next
   mg1 <- mapgrids %>% filter(ftid==ii) %>%
     mutate(geometry= h_lkp(CellCode, select(gr10_3035, CellCode, geometry))) %>%
     st_as_sf
-  if (nrow(mg1)==0L) next #TOCHK sp 1083!!!
   mh1 <- maphulls %>% filter(ftid==ii)
   ptitl <- glue("{cw$b_id}: {cw$ft_name0}")
-  phead <- c(`Relevant synonyms` = d0$F1a[1],
-             `Norwegian name`= d0$F1b[1] %>% h_cap1st,
+  phead <- c(`Relevant synonyms` = d0$F1a[1],          # no F1a-F1b for habitats: this & the next line are dropped 
+             `Norwegian name`= d0$F1b[1] %>% h_cap1st,  
              `Feature group`= fgrps_en[cw$fgrp] %>% unname,
              `Expert(s)` = d0$expert[1],
               Date = track1 %>% filter(ftid==ii) %>% {c("",.$done)} %>% max
@@ -197,7 +189,7 @@ for (ii in chklw$ftid[17:nrow(chklw)]) { #[(1:10)*7]) {
    #H4s:
     if (oo %in% ook && cw$ftt=="sp") p1$H4s <- list(status= dd$C5a %>% h_oie, trend= dd$C3a %>% str_sub(1,1) %>% h_oie)
    #SnF:
-    if (oo %in% ook && cw$ftt=="ha") p1$Are <- list(status= dd$C5a %>% h_oie, trend= dd$C3a %>% str_sub(1,1) %>% h_oie)
+    if (oo %in% ook && cw$ftt=="ha") p1$SnF <- list(status= dd$C5a.0 %>% h_oie, trend= dd$C3a %>% str_sub(1,1) %>% h_oie)
    #Fpr: 
     if (oo %in% ook) p1$Fpr <- list(status= dd$D4d.0 %>% h_oie)
     
@@ -234,7 +226,7 @@ for (ii in chklw$ftid[17:nrow(chklw)]) { #[(1:10)*7]) {
     filter(!is.na(value)) %>%
     {.$value} %>% as.list
   
-  tmp <- str_c(cw$ftid," ",cw$ft_name0) %>% #main title 
+  tmp <- str_c(cw$ftid," ",cw$ft_name0) %>% # plot title 
     str_c(if (ms1$map_la == "la") "\n  (low accuracy)" else "") #la marking (B1b="mostly_inaccurate"), if needed
   f_tmp <- file_temp(ext = ".rds") # temp file to save the ggplot
   f_out <- str_c(cw$ftid,"_",cw$ft_name1,".pdf") #%>% path(fashdir, .)
@@ -258,5 +250,13 @@ for (ii in chklw$ftid[17:nrow(chklw)]) { #[(1:10)*7]) {
 
   message(paste("Rendering:", f_out))
   quarto_render(f_templ, "typst", f_out, execute_params= pp, quiet=TRUE)
+  file_copy(path("output/qmd", f_out), fashdir, overwrite=T)
   }
   
+
+
+dir_create(fashdir)
+f_templ <- "qmd/fash_templ.qmd"
+# debug <- F # extra diagnostics
+
+

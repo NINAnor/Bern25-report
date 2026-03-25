@@ -22,7 +22,10 @@ author:
   - Joachim Paul Töpper
   - Signe Nybø
 
-format: html
+format: 
+  html:
+    embed-resources: true
+    toc: true
 ---
  
 ```{r}
@@ -38,7 +41,7 @@ library(gt)
 # 260311  - initial version 
 # 260315  - almost complete report 
 # 260316  - moved to dedicated project 
-# 260320  - complemented with intro & success story
+# 260320  - self-containing html, complemented with intro & success story 
 ```
 
 ```{r}
@@ -103,7 +106,8 @@ i2019all <- read_rds(path(pdrive,"data","2019_data","all_data_2019-01-250923_200
 tmp <- chklw %>%
   with(str_c("b25_", exp0,"_", ftid, ".json")) %>% 
   path(jsonhome, .) %>%
-  map(\(x) jsonlite::read_json(here::here(x)))
+  map(possibly(\(x) jsonlite::read_json(here::here(x)), otherwise=NULL)) %>%
+  discard(is.null)
 
 tmp1 <- tibble(ftid=  map_chr(tmp, \(x) pluck(x, 1, "ftid"))) %>%
   # mutate(ft_name0=   map_chr(tmp, \(x) pluck(x, 1, "ft_name0"))) %>%
@@ -150,8 +154,9 @@ According to *Resolution 8* (2012), every country must perform regular reporting
 
 ## The scope of the reporting
 
-The heart of the Resolution 8 reporting consists of a series of detailed assessments that address a number of pre-selected, species, habitat types and *biogeographic regions* (BGR, see @fig-bgr-emerald). For 2025 Norway received a “checklist” consisting of 74 *species* and 6 *habitat types*, which are often also called *features* collectively. Each of these features was pre-selected for assessment in one or more of the four EU biogeographic regions (BGR) that intersect the territory of the country (altogether 156 *assessments*). Eventually, the presence of two species was not confirmed by the experts,[^1] and for several species the list of biogeographic regions was also changed,  were identified, which resulted in a final set of 72 *species* 6 *habitat types* 157 "full" and 9 partial *assessments* (@tbl-fgrp).[^2] In addition to The full list of the species assessed and the main assessment conclusions will be presented in an Annex (TODO!!).   
+The heart of the Resolution 8 reporting consists of a series of detailed assessments that address a number of pre-selected, species, habitat types and *biogeographic regions* (BGR, see @fig-bgr-emerald). For 2025 Norway received a “checklist” consisting of 74 *species* and 6 *habitat types*, which are often also called *features* collectively. Each of these features was pre-selected for *assessment* in one or more of the four EU biogeographic regions (BGR) that intersect the territory of the country.[^0] Eventually, the presence of two species was not confirmed by the experts,[^1] and the list of biogeographic regions also had to be updated for several species. This resulted in a final set 157 *full* and 9 *partial* assessments covering 72 *species* 6 *habitat types* across the four biogeographic regions of Norway (@tbl-fgrp).[^2] In addition to The full list of the species assessed and the main assessment conclusions will be presented in an Annex (TODO!!).   
 
+[^0]: In the context of the Bern Convention, assessing one feature (a species or a habitat type) in one region is counted as "one assessment".  
 [^1]: Stag beetle (*Lucanus cervus*) was never observed in Norway, and the orchid *Liparis loeselei* was extinct too long ago to be relevant for the Bern Convention.  
 [^2]: Partial assessments have a significantly limited data content without conclusions. Such assessments are allowed for species and habitats only *marginally* present in a biogeographic region (MAR), as well as for *occasionally* occurring (OCC) and *newly arriving* species (ARR).  
 

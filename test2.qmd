@@ -1,0 +1,100 @@
+---
+title: "Structured List Report"
+format: typst
+# Here is the dummy parameter exactly matching your requested structure
+params:
+  report_data:
+    value:
+      titl: "Monthly Regional Status Report"
+      Region_North:
+        s1: "Status: 🟢 Active"
+        s2: "Temp: 12°C"
+        s3: "Humidity: 45%"
+        s4: "Trend: ↗️"
+        extra1: "Equipment inspection passed on Monday."
+        extra2: "Awaiting new sensor delivery."
+      Region_South:
+        s1: "Status: 🔴 Warning"
+        s2: "Temp: 22°C"
+        s3: "Humidity: 88%"
+        s4: "Trend: ↘️"
+        extra1: "High humidity causing condensation issues."
+        extra2: "Maintenance crew dispatched."
+        extra3: "ETA for repairs is 48 hours."
+---
+
+## Conservation status of species and habitat types 
+
+We start with presenting an overview of the conclusions of the assessments. Each assessment has an overall conclusion, which is based on four "parameters", each of which has its own conclusions. The conclusions for the individual parameters rely on quantitative and qualitative data collected by taxonomic experts following detailed guidelines provided by the Bern Secretariat. The four assessment parameters for species include its *distribution range* (Ran), *population size* (Pop), the quality and quantity of the *available habitat* for the species (H4s), and its *future prospects* (Fpr) based on the balance of pressures and conservation measures. All conclusions are evaluated in a simple "traffic light system" using one of the following four *conservation status* categories: 
+
+*  **FV**: Favourable (green), 
+*  **U1**: Unfavourable - inadequate (amber), 
+*  **U2**: Unfavourable - bad (red),
+*  **XX**: Unknown (grey).
+
+### Species assessments
+
+Below we also visualise the distribution of the conclusions across the different species groups and assessment parameters..
+
+```{r}
+#| label: render-asis-blocks
+#| echo: false
+#| results: "asis"
+
+# 1. Extract the main list from params
+my_list <- params$report_data
+
+# 2. Print the obligatory title (using ### as requested)
+cat(paste0("### ", my_list$titl, "\n\n"))
+
+# 3. Get the names of the remaining components (excluding 'titl')
+component_names <- setdiff(names(my_list), "titl")
+
+# 4. Loop through each remaining component (the 1-5 items)
+for (c_name in component_names) {
+  
+  # Extract the current component's data
+  comp <- my_list[[c_name]]
+  
+  # --- START LAYOUT BLOCK ---
+  # Open the 5-column layout
+  cat(":::{layout=\"[1,1,1,1,1]\"}\n\n")
+  
+  # The 5 elements (MUST be separated by \n\n to act as distinct layout blocks)
+  
+  # Column 1: Element Name (formatting as bold for visual clarity)
+  cat(paste0("**", c_name, "**\n\n"))
+  
+  # Columns 2-5: s1 through s4
+  cat(paste0(comp$s1, "\n\n"))
+  cat(paste0(comp$s2, "\n\n"))
+  cat(paste0(comp$s3, "\n\n"))
+  cat(paste0(comp$s4, "\n\n"))
+  
+  # Close the layout block
+  cat(":::\n\n")
+  # --- END LAYOUT BLOCK ---
+  
+  
+  # --- START BULLETED LIST ---
+  # Filter out s1, s2, s3, and s4 to find the "further unnamed/named elements"
+  # This grabs everything else in the list component
+  extra_elements <- comp[!(names(comp) %in% c("s1", "s2", "s3", "s4"))]
+  
+  # If there are any extra elements, print them as a bulleted list
+  if (length(extra_elements) > 0) {
+    
+    # INJECT RAW TYPST: Pull the bulleted list upward to reduce the gap
+    # Quarto ignores this if you render to HTML, but executes it for Typst!
+    cat("```{=typst}\n#v(-1.5em)\n```\n\n")
+    
+    for (item in extra_elements) {
+      cat(paste0("* ", item, "\n"))
+    }
+    # Add a final double newline to close out the bulleted list cleanly
+    cat("\n\n")
+  }
+  # --- END BULLETED LIST ---
+  
+}
+```
