@@ -1,5 +1,0 @@
----
-title: "factsheet_bgr_module"
-format: html
----
-

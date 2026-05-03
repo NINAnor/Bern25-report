@@ -1,6 +1,7 @@
 # History files
 .Rhistory
 .Rapp.history
+.positai
 # Session Data files
 .RData
 .RDataTmp
@@ -36,4 +37,9 @@ rsconnect/
 /.quarto/
 **/*.quarto_ipynb
 ## BC: massive output files
-/output/qmd/*.pdf
+/output/  
+  # the entire output folder
+!/output/qmd/bern25_report_main.html 
+  # except for the last full html report version
+
+
