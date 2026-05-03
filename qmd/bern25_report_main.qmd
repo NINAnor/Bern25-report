@@ -1,20 +1,23 @@
 ---
 title:    "Assessing the conservation status of Norwegian species and habitats for the Bern Convention in 2025"
-subtitle: "version 20.03.2026 (Draft)"
+subtitle: "(Draft)"
+date: last-modified
 author: 
-  - Balint Czucz
+  - Bálint Czúcz
   - Duncan Halley
   - Kwaku Peprah Adjei
-  - Fia Bengtsson
+  - Nina E. Eide
+  - Ulrika Jansson Asplund
   - Kim Magnus Bærum
+  - Fia Bengtsson
+  - Tor Erik Brandrud
   - Joseph Chipperfield
   - Jiska van Dijk
   - Børre Dervo
-  - Nina E. Eide
   - Anders Endrestøl
-  - Duncan Halley
   - Hanne Hegre
   - Anders Kolstad
+  - Anders Lyngstad
   - Jon H. Magerøy
   - Jan Ketil Rød
   - Heidi Solstad
@@ -22,10 +25,37 @@ author:
   - Joachim Paul Töpper
   - Signe Nybø
 
+abstract: |
+  This report presents the 2025 assessment of the conservation status of Norwegian species and habitats 
+  as mandated by Resolution 8 of the Bern Convention. The evaluation comprises 157 detailed assessments 
+  covering 72 species and 6 habitat types across Norway's four bio-geographical regions. Statuses were 
+  categorized on a four-grade scale as *Favourable*, *Unfavourable inadequate*, *Unfavourable bad*, or 
+  *Unknown* based on parameters including range, population size or habitat area, habitat quality, and 
+  future prospects.  
+  
+  The findings reveal that a significant number of the assessed features currently hold "Unfavourable" overall 
+  conservation status. Primary ongoing pressures affecting these species and habitats include problematic 
+  native species, infrastructure development, land conversion, and climate change. Correspondingly, top 
+  conservation measures focus on preventing natural habitat conversion and adapting forest management practices.  
+  
+  While the report highlights notable conservation successes—such as a tenfold population increase in the 
+  critically endangered Arctic fox due to targeted interventions like captive breeding and feeding—it also 
+  underscores severe knowledge gaps. Optimal quantitative data is largely restricted to specific monitored 
+  mammals and fish, whereas 18 species and habitat types currently suffer from highly fragmented or entirely 
+  absent foundational distribution data.
+
 format: 
   html:
     embed-resources: true
     toc: true
+  # docx:  # produces a broken (& unrecoverable) docx file... :(
+  #   toc: true
+  #   reference-doc: "r:/Maler/NINA_Rapport_bokmal.dotx"
+  #   number-sections: true
+  #   number-depth: 3
+  #   fig-align: center
+  #   lang: nb
+     
 ---
  
 ```{r}
@@ -42,6 +72,7 @@ library(gt)
 # 260315  - almost complete report 
 # 260316  - moved to dedicated project 
 # 260320  - self-containing html, complemented with intro & success story 
+# 260430  - rewrite for the final submitted data structures 
 ```
 
 ```{r}
@@ -53,7 +84,7 @@ pdrive <- if(ninaServer) "~/Mounts/P-Prosjekter2/112549_bern_2025" else "P:/1125
 ahome <-  "assessment" %>% path(pdrive, .) # working dir for the experts
 tpldir0 <- "data/_templates" %>% path(pdrive, .) # working dir for templates
 sthome <- "data/st_all" %>% path(pdrive, .) # a repo folder for the "full" contents of all "simple templates" (st)
-jsonhome <- "../Bern25-harvest/out/" # the home of the json files harvested from the simple templates (...does not work on NINA server!!!)
+outhome <- "data/_output" %>% path(pdrive, .) # (~final) output files 
 
 ### introduction of typologies, etc.
 fgrps_en <- c(ma= "Mammals", 
@@ -86,51 +117,17 @@ h_ensure_cols <- function(x, cols, typ="") { # make sure that columns _cols_ exi
   ret <- if (nrow(x)!=0L) ret else slice(ret, -1)
   ret}
 
-### the checklist, xt reflovs and st lookups
-chklw <- read_rds(path(pdrive,"data/chklist-newest.rds"))   #wide
-chkll <- read_rds(path(pdrive,"data/chkl_long-newest.rds")) #long
-reflovs <- read_csv(path(tpldir0, "xt_reflovs-260126.csv")) %>% rename(id= rd_id)
+###
+### READ data
+###
+dat2 <- read_rds(path(outhome, "xt_posthr2-newest.rds"))    # the final assessment outcomes 
+chklw <- read_rds(path(pdrive,"data/chklist-newest.rds"))   # only needed for: species groups, norwegian names
+# chkll <- read_rds(path(pdrive,"data/chkl_long-newest.rds")) #long
+# reflovs <- read_csv(path(tpldir0, "xt_reflovs-260126.csv")) %>% rename(id= rd_id)
 stcodes <- read_csv(path(tpldir0, "st_codelists-newest.csv"))
 pmcodes <- read_csv(path(tpldir0, "pres_meas_codes-newest.csv"))
+i2019all <- read_rds(path(pdrive,"data","2019_data","all_data_2019-01-250923_2008.rds")) # the i2019 "old values"
 
-### lists of all extracted fields from the last versions of the two xlsx templates
-tmp <- read_rds(path(tpldir0, "t_struc.rds")) # t_struc
-fds <- NULL
-fds$sp <- tmp %>% keep_at(\(i) str_detect(i,"^sp")) %>% pluck(-1) %>% select(-icell) 
-fds$ha <- tmp %>% keep_at(\(i) str_detect(i,"^ha")) %>% pluck(-1) %>% select(-icell) 
-
-### the i2019 "old values"
-i2019all <- read_rds(path(pdrive,"data","2019_data","all_data_2019-01-250923_2008.rds"))
-
-### the json files "harvested" from the simple templates
-tmp <- chklw %>%
-  with(str_c("b25_", exp0,"_", ftid, ".json")) %>% 
-  path(jsonhome, .) %>%
-  map(possibly(\(x) jsonlite::read_json(here::here(x)), otherwise=NULL)) %>%
-  discard(is.null)
-
-tmp1 <- tibble(ftid=  map_chr(tmp, \(x) pluck(x, 1, "ftid"))) %>%
-  # mutate(ft_name0=   map_chr(tmp, \(x) pluck(x, 1, "ft_name0"))) %>%
-  mutate(t_ver=   map_chr(tmp, \(x) pluck(x, 1, "t_ver"))) %>%
-  mutate(tabs=    map(tmp, \(x) pluck(x, 1, "tabs"))) %>%
-  mutate(tabs= map(tabs, \(x) list_transpose(x, default=NA))) %>%
-  mutate(tabs= map(tabs, as_tibble)) 
-
-### two full "data cubes" (for sp & ha separately) 
-dat <- NULL # the two "data cubes" -- with everything (except for ranges, etc.)
-dat$sp <- tmp1 %>% filter(str_detect(t_ver, "^sp")) %>% unnest(tabs) %>%
-  bind_rows(set_names(fds$sp$f_id) %>% as.list %>% as_tibble %>% slice(-1), .) %>% #fix col order & explicit NAs
-  left_join(chkll, by=join_by(ftid, bgr)) %>%
-  left_join(select(chklw, -any_of(names(select(chkll, -ftid)))), by=join_by(ftid)) %>%
-  mutate(fgrp= fct(fgrp, names(fgrps_en))) %>%
-  relocate(ftid, bgr, fgrp, exp0, occ1, ft_name0, status)
-
-dat$ha <- tmp1 %>% filter(str_detect(t_ver, "^ha")) %>% unnest(tabs) %>%
-  bind_rows(set_names(fds$ha$f_id) %>% as.list %>% as_tibble %>% slice(-1), .) %>% #fix col order & explicit NAs
-  left_join(chkll, by=join_by(ftid, bgr)) %>%
-  left_join(select(chklw, -any_of(names(select(chkll, -ftid)))), by=join_by(ftid)) %>%
-  mutate(fgrp= fct(fgrp, names(fgrps_en))) %>%
-  relocate(ftid, bgr, fgrp, exp0, occ1, ft_name0, status)
 ```
 
 
@@ -149,33 +146,42 @@ The Bern Convention, adopted in 1979, is an international treaty aimed at conser
 knitr::include_graphics(here::here("img","bgr_emerald.png"))
 ```
 
-According to *Resolution 8* (2012), every country must perform regular reporting about a selection of *species* and *habitat types*. The structure and content of the reporting, as well as its timing follows very closely the so-called “Article 17 reporting” of the EU Habitats Directive. Furthermore, both reporting processes have a *6-year cycle*, which means that for the Bern Convention countries the 2025 reporting is their second reporting altogether (the first, relatively limited reporting took place in 2019). The main purpose of the whole reporting is to assess the “*conservation status*” of the selected species and habitats in a semi-standardised way, based on the best available data and evidence.
+According to *Resolution 8* (2012), every country must perform regular reporting about a selection of *species* and *habitat types*. As the Bern Convention has a Pan-European focus, it covers several species and habitat types that are threatened at the European level, even if they are doing relatively fine in Norway. Monitoring and reporting for such species can be considered as a vital contribution from Norway to their European-level protection. Similarly, the Resolution 8 reporting may miss some nationally/regionally endangered species and ha-bitat types if they are not under threat at the European level, which underlines why national and international monitoring and reporting must be sustained in parallel, maximising their sy-nergies.
 
+The structure and content of the reporting, as well as its timing follows very closely the so-called “Article 17 reporting” of the EU Habitats Directive. Furthermore, both reporting processes have a *6-year cycle*, which means that for the Bern Convention countries the 2025 reporting is their second reporting altogether (the first, relatively limited reporting took place in 2019). The main purpose of the whole reporting is to assess the “*conservation status*” of the selected species and habitats in a semi-standardised way, based on the best available data and evidence.
 
-## The scope of the reporting
-
-The heart of the Resolution 8 reporting consists of a series of detailed assessments that address a number of pre-selected, species, habitat types and *biogeographic regions* (BGR, see @fig-bgr-emerald). For 2025 Norway received a “checklist” consisting of 74 *species* and 6 *habitat types*, which are often also called *features* collectively. Each of these features was pre-selected for *assessment* in one or more of the four EU biogeographic regions (BGR) that intersect the territory of the country.[^0] Eventually, the presence of two species was not confirmed by the experts,[^1] and the list of biogeographic regions also had to be updated for several species. This resulted in a final set 157 *full* and 9 *partial* assessments covering 72 *species* 6 *habitat types* across the four biogeographic regions of Norway (@tbl-fgrp).[^2] In addition to The full list of the species assessed and the main assessment conclusions will be presented in an Annex (TODO!!).   
+The heart of the Resolution 8 reporting consists of a series of detailed assessments that address a number of pre-selected, species, habitat types and *biogeographic regions* (BGR, see @fig-bgr-emerald). For 2025 Norway received a “checklist” consisting of 74 *species* and 6 *habitat types*, which are often also called *features* collectively. Each of these features was pre-selected for *assessment* in one or more of the four EU biogeographic regions (BGR) that intersect the territory of the country.[^0] Eventually, the presence of three species was not confirmed by the experts,[^1] and the list of biogeographic regions also had to be updated for several species. This resulted in a final set 157 *full assessments* covering 71 *species* 6 *habitat types* across the four biogeographic regions of Norway (@tbl-fgrp-occ).[^2] The full list of the species and habitat types assessed and the main assessment conclusions is presented in Annexes 1 & 2.   
 
 [^0]: In the context of the Bern Convention, assessing one feature (a species or a habitat type) in one region is counted as "one assessment".  
-[^1]: Stag beetle (*Lucanus cervus*) was never observed in Norway, and the orchid *Liparis loeselei* was extinct too long ago to be relevant for the Bern Convention.  
-[^2]: Partial assessments have a significantly limited data content without conclusions. Such assessments are allowed for species and habitats only *marginally* present in a biogeographic region (MAR), as well as for *occasionally* occurring (OCC) and *newly arriving* species (ARR).  
+[^1]: Stag beetle (*Lucanus cervus*) was never observed in Norway, and two species, the beetle *Stephanopachys substriatus* and the orchid *Liparis loeselei* disappeared from Norway before the Bern Convention entered into force.  
+[^2]: Pre-defined special cases (e.g. species/habitats with *marginal presence* (MAR) or uncertain occurrence (*scientific reserve*, SCR)) in the studied region. For these *occurrence categories* we did not provide a detailed assessment in this assessment period. 
 
 ```{r}
-#| label: tbl-fgrp
-#| tbl-cap: "Groups of features (species, habitats) used in this report (N~features~: number of features, N~assmt.full~: number of full assessments, N~assmt.part~: number of partial assessments)"
+#| label: tbl-fgrp-occ
+#| tbl-cap: "The number of *features* (i.e. species & habitat types: N~features~) and *assessments* (detailed expert evaluations for a feature in a biogeofraphic region: N~assessments~). Features (species, habitats) with insignificant, uncertain, or historical occurrences in a biogeographic region were recorded without a detailed assessment (MAR: Features near their natural range limits with insignificant abundance/area in the studied region; EXp: Species extinct before the Bern Convention entered into force (1982); SCR: Features with an uncertain occurrence in the studied region)."
 #| warning: false
 #| echo: false
 
 ### an overview table
-tmp1 <- chkll %>%
+tmp1a <- select(dat2$spr, ftid, bgr, occ)  %>% 
+  bind_rows(select(dat2$har, ftid, bgr, occ)) %>%
   mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
-  group_by(fgrp) %>% summarise(Nf= length(unique(ftid)), Na1= sum(t_ass=="full"), Na2= n()-Na1) %>%
-  mutate(main= str_c(fgrps_en[as.character(fgrp)]," (",fgrp,")") %>% unname) %>% 
-  select(main, Nf, Na1, Na2)
-tmp2 <- tmp1 %>% summarise(main= "Total", Nf=sum(Nf), Na1=sum(Na1), Na2=sum(Na2))
+  group_by(fgrp, occ) %>% summarise(value= n()) %>%
+  pivot_wider(names_from="occ") %>%
+  mutate(Na= PRE+replace_na(TAX, 0)) %>%
+  select(Na, MAR, EXp, SCR) #drop "DEL" and sort the rest (## )+drop PRE & TAX too -- as reported under Na)
+tmp1 <- select(dat2$spr, ftid, bgr, occ)  %>% 
+  bind_rows(select(dat2$har, ftid, bgr, occ)) %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  group_by(fgrp) %>% summarise(Nf= length(unique(ftid))) %>%
+  left_join(tmp1a, by="fgrp") %>%
+  mutate(main= str_c(fgrps_en[as.character(fgrp)]," (",fgrp,")") %>% unname) %>%
+  relocate(main) %>% select(-fgrp)
+tmp2 <- tmp1 %>% summarise(main= "Total", across(-main, \(x) sum(x, na.rm=T)))
   
 bind_rows(tmp1, tmp2) %>% gt() %>% 
-  cols_label(main="Feature groups", Nf=md("N~features~"), Na1=md("N~assmt.full~"), Na2=md("N~assmt.part~")) %>%
+  cols_label(main="Feature groups", Nf=md("N~features~"), Na=md("N~assessments~")) %>%
+  tab_spanner(label="Special cases", columns=-c(main, Nf, Na)) %>%
   cols_align("center") %>% cols_align("left", columns= main) %>%
   sub_missing() %>%
   tab_style(style = cell_text(weight= "bold"), locations = cells_column_labels()) %>%
@@ -207,11 +213,12 @@ We start with presenting an overview of the conclusions of the assessments. Each
 lov <- stcodes %>% filter(id=="rd_ConclusionsAssessment") %>% select(sc, sl) %>% deframe
 
 ### conclusions per species groups
-tmp1a <- dat$sp %>%
-  filter(t_ass=="full") %>% select(Codes= E1a.0) %>% 
+tmp1a <- dat2$spr %>%
+  select(Codes= S_11_5_conclusion_overall_assessment) %>% 
   group_by(Codes) %>% summarise(n=n()) 
-tmp1b <- dat$sp %>% 
-  filter(t_ass=="full") %>% select(fgrp, Codes= E1a.0) %>% 
+tmp1b <- dat2$spr %>% 
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  select(fgrp, Codes= S_11_5_conclusion_overall_assessment) %>% 
   group_by(fgrp, Codes) %>% summarise(n=n()) %>% ungroup
 tmp1 <- tmp1a %>%
   mutate(fgrp="all") %>% bind_rows(tmp1b, .) %>% 
@@ -235,18 +242,20 @@ tmp1 %>% gt() %>%
 #| warning: false
 #| echo: false
 
-para_sp  <- c(Ran="B7a", Pop="A8a", H4s="C5a", Fpr="D4d.0")
+para_sp  <- c(Ran="S_11_1", Pop="S_11_2", H4s="S_11_3", Fpr="S_11_4", OvC="S_11_5") %>%
+  map_chr(\(x) str_subset(names(dat2$spr), str_c("^",x))[1])
 
-tmp2a <- para_sp %>%
-  imap(\(ff, i) dat$sp %>% filter(t_ass=="full") %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
-    group_by(para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
+tmp2a <- para_sp %>% 
+  imap(\(ff, i) dat2$spr %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
+                  group_by(para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
   list_rbind %>%
   pivot_wider(names_from= Codes, values_from= n) %>%
   mutate(main= para0_en[para]) %>%
   h_ensure_cols(names(lov)) %>% select(!!!c("main", names(lov)))
 tmp2b <- para_sp %>%   # needed only by the figures below
-  imap(\(ff, i) dat$sp %>% filter(t_ass=="full") %>% mutate(fgrp, para=i, Codes= !!rlang::sym(ff)) %>%
-    group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
+  imap(\(ff, i) dat2$spr %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
+                  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+                  group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
   list_rbind
 
 tmp2a  %>% gt() %>% 
@@ -269,7 +278,7 @@ Below we also visualise the distribution of the conclusions across the different
 #| echo: false
 
 # the overall-overall conclusions (pie) 
-tmp1a %>% #filter(!is.na(Codes)) %>% 
+tmp1a %>% filter(!is.na(Codes)) %>% 
   {ggplot(.) + geom_bar(aes(x="", y=n, fill=Codes), stat="identity", width=1, color="white") +
   scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
   coord_polar(theta="y", direction=-1) + 
@@ -283,7 +292,7 @@ tmp1a %>% #filter(!is.na(Codes)) %>%
 #| echo: false
 
 # the overall conclusions per species group (bars) 
-tmp1b %>% #filter(!is.na(Codes)) %>% 
+tmp1b %>% filter(!is.na(Codes)) %>% 
   {ggplot(.) + geom_bar(aes(x=fgrp, y=n, fill=Codes), stat="identity", position="fill") + #, width=1, color="white") +
   scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
   theme_minimal(base_size= 16) + theme(axis.title = element_blank(), legend.position= "none")
@@ -301,7 +310,7 @@ para1= "Ran"
 
 tmp2a %>% 
   mutate(fgrp=fct("all", names(fgrps_en))) %>% bind_rows(tmp2b, .) %>%
-  filter(para==para1) %>% 
+  filter(para==para1, !is.na(Codes)) %>% 
   {ggplot(.) + geom_bar(aes(x=fgrp, y=n, fill=Codes), stat="identity", position="fill") + 
     scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
     labs(title=para1) + theme_minimal(base_size= 32) + 
@@ -318,7 +327,7 @@ para1= "Pop"
 
 tmp2a %>% 
   mutate(fgrp=fct("all", names(fgrps_en))) %>% bind_rows(tmp2b, .) %>%
-  filter(para==para1) %>%
+  filter(para==para1, !is.na(Codes)) %>%
   {ggplot(.) + geom_bar(aes(x=fgrp, y=n, fill=Codes), stat="identity", position="fill") + 
     scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
     labs(title=para1) + theme_minimal(base_size= 32) + 
@@ -335,7 +344,7 @@ para1= "H4s"
 
 tmp2a %>% 
   mutate(fgrp=fct("all", names(fgrps_en))) %>% bind_rows(tmp2b, .) %>%
-  filter(para==para1) %>%
+  filter(para==para1, !is.na(Codes)) %>%
   {ggplot(.) + geom_bar(aes(x=fgrp, y=n, fill=Codes), stat="identity", position="fill") + 
     scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
     labs(title=para1) + theme_minimal(base_size= 32) + 
@@ -352,7 +361,7 @@ para1= "Fpr"
 
 tmp2a %>% 
   mutate(fgrp=fct("all", names(fgrps_en))) %>% bind_rows(tmp2b, .) %>%
-  filter(para==para1) %>%
+  filter(para==para1, !is.na(Codes)) %>%
   {ggplot(.) + geom_bar(aes(x=fgrp, y=n, fill=Codes), stat="identity", position="fill") + 
     scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
     labs(title=para1) + theme_minimal(base_size= 32) + 
@@ -375,18 +384,19 @@ The conclusions of the species assessments in the 2025 reporting of Norway to th
 
 # stcodes %>% filter(id=="rd_ConclusionsAssessment") %>% {.$sl}
 
-para_ha  <- c(Ran="B7a", Are="A6a", SnF="C5a.0", Fpr="D4d.0", OvC="E1a.0")
+para_ha  <- c(Ran="H_10_1", Are="H_10_2", SnF="H_10_3", Fpr="H_10_4", OvC="H_10_5") %>%
+  map_chr(\(x) str_subset(names(dat2$har), str_c("^",x))[1])
 
 tmp2a <- para_ha %>%
-  imap(\(ff, i) dat$ha %>% filter(t_ass=="full") %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
-    group_by(para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
+  imap(\(ff, i) dat2$har %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
+                  group_by(para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
   list_rbind 
 tmp2 <- tmp2a %>% 
   pivot_wider(names_from= Codes, values_from= n) %>%
   mutate(main= para0_en[para]) %>%
   h_ensure_cols(names(lov)) %>% select(!!!c("main", names(lov)))
 
-tmp2  %>% gt() %>% 
+tmp2 %>% gt() %>% 
   cols_label(main= "Assessment parameters") %>%
   cols_align("center") %>% cols_align("left", columns= main) %>%
   sub_missing() %>%
@@ -404,8 +414,8 @@ tmp2  %>% gt() %>%
 #| echo: false
 
 # the overall-overall conclusions (pie) 
-dat$ha %>%
-  filter(t_ass=="full") %>% select(Codes= E1a.0) %>% 
+dat2$har %>%
+  select(any_of(para_ha["OvC"])) %>% set_names("Codes") %>% filter(!is.na(Codes)) %>% 
   group_by(Codes) %>% summarise(n=n()) %>% 
   {ggplot(.) + geom_bar(aes(x="", y=n, fill=Codes), stat="identity", width=1, color="white") +
   scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
@@ -419,7 +429,7 @@ dat$ha %>%
 #| echo: false
 
 # the overall conclusions per sub-assessment (bars) 
-tmp2a %>% filter(para!="OvC") %>% 
+tmp2a %>% filter(para!="OvC", !is.na(Codes)) %>% 
   mutate(para=fct(para, names(para0_en))) %>%
   {ggplot(.) + geom_bar(aes(x=para, y=n, fill=Codes), stat="identity", position="fill") + #, width=1, color="white") +
   scale_fill_manual(values= c(FV="yellowgreen",U1="gold2",U2="darkorange",XX="ivory3")) +
@@ -430,6 +440,7 @@ tmp2a %>% filter(para!="OvC") %>%
 
 The conclusions of habitat type assessments in the 2025 reporting of Norway to the Bern Convention (Resultion 8). Left: overall conclusions for all habitat types (pie chart); right: partial conclusions for the four main assessment parameters (Ran: range, Are: area, SnF: structure and function, Fpr: future prospects)
 :::
+
 
 ## Changes and trends
 
@@ -450,10 +461,11 @@ Short term trends are first assessed individually for the different state parame
 lov <- stcodes %>% filter(id=="rd_ConclusionsTrend") %>% select(sc,sl) %>% deframe
 
 ### overall trend qualifiers per species groups
-tmp1 <- dat$sp %>%
-  filter(t_ass=="full") %>% select(Codes= E2a.0) %>% 
-  bind_rows(dat$ha %>% filter(t_ass=="full") %>% select(Codes= E2a.0)) %>%
-  mutate(Codes=Codes %>% fct(names(lov))) %>%
+tmp1 <- dat2$spr %>%
+  select(Codes= S_11_6_conclusion_overall_trend) %>% 
+  bind_rows(dat2$har %>% select(Codes= H_10_6_conclusion_overall_trend)) %>%
+  filter(!is.na(Codes)) %>%
+  mutate(Codes=Codes %>% str_sub(1,1) %>% fct(names(lov))) %>%
   group_by(Codes) %>% summarise(n=n()) 
 
 # the overall trend qualifiers (pie) 
@@ -471,10 +483,12 @@ tmp1 %>%
 #| warning: false
 #| echo: false
 
-tmp2 <- dat$sp %>%
-  filter(t_ass=="full") %>% select(fgrp, Codes= E2a.0) %>% 
-  bind_rows(dat$ha %>% filter(t_ass=="full") %>% select(fgrp, Codes= E2a.0)) %>%
-  mutate(Codes=Codes %>% fct(names(lov))) %>%
+tmp2 <- dat2$spr %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  select(fgrp, Codes= S_11_6_conclusion_overall_trend) %>% 
+  bind_rows(dat2$har %>% mutate(fgrp=fct("ht",names(fgrps_en))) %>% select(fgrp, Codes= H_10_6_conclusion_overall_trend)) %>%
+  mutate(Codes=Codes %>% str_sub(1,1) %>% fct(names(lov))) %>%
+  filter(!is.na(Codes)) %>%
   group_by(fgrp, Codes) %>% summarise(n=n()) 
 
 # the overall conclusions per species group (bars) 
@@ -495,17 +509,23 @@ tmp2 %>% #filter(!is.na(Codes)) %>%
 #| fig-width: 8     
 #| fig-height: 4.5  
 
-para_sp  <- c(Ran="B3a", Pop="A4a", H4s="C3a")
-para_ha  <- c(Ran="B3a", Are="A2a", SnF="C3a")
+para_sp  <- c(Ran="S_5_4", Pop="S_6_10", H4s="S_7_4") %>%
+  map_chr(\(x) str_subset(names(dat2$spr), str_c("^",x))[1])
+para_ha  <- c(Ran="H_4_4", Are="H_5_7", SnF="H_6_4") %>%
+  map_chr(\(x) str_subset(names(dat2$har), str_c("^",x))[1])
 lov <- stcodes %>% filter(id=="rd_ConclusionsTrend") %>% select(sc,sl) %>% deframe
 
 tmp2a <- para_sp %>%
-  imap(\(ff, i) dat$sp %>% filter(t_ass=="full") %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
-    group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
+  imap(\(ff, i) dat2$spr %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
+           mutate(Codes= str_sub(Codes,1,1)) %>% filter(!is.na(Codes)) %>%
+           mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+           group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
   list_rbind
 tmp2b <- para_ha %>%
-  imap(\(ff, i) dat$ha %>% filter(t_ass=="full") %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
-    group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
+  imap(\(ff, i) dat2$har %>% mutate(para=i, Codes= !!rlang::sym(ff)) %>%
+           mutate(Codes= str_sub(Codes,1,1)) %>% filter(!is.na(Codes)) %>%
+           mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+           group_by(fgrp, para, Codes) %>% summarise(n=n(), .groups="drop")) %>%
   list_rbind
 tmp2 <- bind_rows(tmp2a, tmp2b) %>%
   mutate(Codes= Codes %>% str_sub(1,1) %>%  fct(names(lov))) 
@@ -603,12 +623,7 @@ tmp2 %>%
 Overall short-term (2013-2024) trends identified during the 2025 assessments. Top row: the overall "*trend qualifiers*" among all assessments (pie chart) and the distribution of trend types across the main groups of features (columns). Bottom row: short term trends for the main assessment parameters. (ma: mammals, fa= fishes & amphibians, im= insects and molluscs, vp: vascular plants, mo: mosses, ht: habitat types; Ran: range, Pop: population, Are: area, H4s: habitat for species, SnF: structure and function)
 :::
 
-### Long term trends 
-
-In this reporting round, *long-term trends* were only assessed for some of the parameters (range & population size for species, and range and area for habitat types), and only in cases when the expert were long-term evidence was available. These cases  means that...  ... @tbl-xxxx provides an overview of the ... (TODO!)
-
-
-### Changes since 2019
+### Changes in conservation status since 2019
 
 The 2019 reporting period was the first reporting period for Norway under Resolution 8 of the Bern Convention. This reporting period was considered to be a pilot exercise by the Bern Convention Secretariat, so only very few species and habitat types were selected for reporting. @tbl-changes-19 provides an overview of the changes in the overall assessment conclusions for the overlapping species.
 
@@ -620,22 +635,28 @@ The 2019 reporting period was the first reporting period for Norway under Resolu
 
 ### conclusions in 2019
 tmp1a <- i2019all$sr_re %>%
-  select(b_id=fea, bgr, cc19= sr_conclusion_assessment_v, co19= sr_conclusion_assessment_trend_v) %>%
+  select(ftid=fea, bgr, cc19= sr_conclusion_assessment_v, co19= sr_conclusion_assessment_trend_v) %>%
+  mutate(ftid= str_remove_all(ftid, fixed("."))) %>%
   filter(cc19!="")  # here I also pull out the old trend qualifiers (co19) but then I don't use them... 
 tmp1 <- i2019all$hr_re %>%
-  select(b_id=fea, bgr, cc19= hr_conclusion_assessment_v, co19= hr_conclusion_assessment_trend_v) %>%
+  select(ftid=fea, bgr, cc19= hr_conclusion_assessment_v, co19= hr_conclusion_assessment_trend_v) %>%
+  mutate(ftid= str_remove_all(ftid, fixed("."))) %>%
   filter(cc19!="") %>%
   bind_rows(tmp1a)
 # tmp1$cc19 %>% table #%>% dput
 
-tmp2a <- dat$sp %>%
-  filter(t_ass=="full") %>% 
-  select(b_id, bgr, rl_navn, fgrp, cc25= E1a.0, co25= E2a.0) 
-tmp2 <- dat$ha %>%
-  filter(t_ass=="full") %>% 
-  select(b_id=b_id, bgr, rl_navn, fgrp, cc25= E1a.0, co25= E2a.0) %>%
+tmp2a <- dat2$spr %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, bgr, rl_navn, fgrp, cc25= S_11_5_conclusion_overall_assessment, co25= S_11_6_conclusion_overall_trend) %>%
+  filter(!is.na(cc25))
+  # select(b_id, bgr, rl_navn, fgrp, cc25= S_11_5_conclusion_overall_assessment, co25= S_11_6_conclusion_overall_trend) 
+tmp2 <- dat2$har %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, bgr, rl_navn, fgrp, cc25= H_10_5_conclusion_overall_assessment, co25= H_10_6_conclusion_overall_trend) %>%
   bind_rows(tmp2a) %>%
-  inner_join(tmp1, by= join_by(b_id, bgr)) %>%
+  inner_join(tmp1, by= join_by(ftid, bgr)) %>%
   mutate(cc= str_c(cc19, " --> ", cc25)) %>%
   group_by(cc, rl_navn) %>% summarise(bgrs= str_c(bgr, collapse=", "), N=n()) %>%
   summarise(N=sum(N), assmts= str_c(rl_navn," (",bgrs,")",collapse="; ") %>% h_cap1st) %>%
@@ -659,20 +680,24 @@ If the overall conservation status of a species/habitat changed since 2019 then 
 #| echo: false
 
 # fields <- c(genuine="E4a01", Pop="A4a", H4s="C3a")
-lov <- stcodes %>% filter(id=="rd_ChangeReason_Main") %>% select(sc,sl) %>% mutate(sl= h_cap1st(sl)) %>% deframe
+lov <- stcodes %>% filter(id=="rd_ChangeReason_Main") %>% select(sc,sl) %>%
+  mutate(sl= h_cap1st(sl)) %>% deframe %>% c(noChange= "No change")
 
-tmp2a <- dat$sp %>%
-  filter(t_ass=="full") %>% 
-  select(b_id, bgr, rl_navn, fgrp, starts_with("E4a")) 
-tmp2 <- dat$ha %>%
-  filter(t_ass=="full") %>% 
-  select(b_id, bgr, rl_navn, fgrp, starts_with("E4a")) %>%
-  bind_rows(tmp2a) %>%
-  pivot_longer(starts_with("E4a"), values_to="cc", values_drop_na=T) %>%
+tmp2a <- dat2$spr %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, bgr, rl_navn, fgrp, data= S_11_7_a_conclusions_overall_assesment_change) 
+tmp2 <- dat2$har %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, bgr, rl_navn, fgrp, data= H_10_7_a_conclusions_overall_assesment_change) %>%
+  bind_rows(tmp2a) %>% filter(!is.na(data)) %>% filter(data!="") %>%
+  mutate(data= map(data, \(x) tibble(cc= str_split_1(x, ";")))) %>% 
+  unnest(data) %>% 
   group_by(cc, rl_navn) %>% summarise(bgrs= str_c(bgr, collapse=", "), N=n()) %>%
   summarise(N=sum(N), assmts= str_c(rl_navn," (",bgrs,")",collapse="; ") %>% h_cap1st) %>%
-  mutate(cc= lov[cc]) # %>%
-  # arrange(desc(N))
+  mutate(cc= lov[cc]) %>%
+  arrange(desc(N))
 
 tmp2 %>% gt() %>% 
   cols_label(cc= "Reasons for status change between 2019 & 2025", assmts= "Assessments") %>%
@@ -682,6 +707,7 @@ tmp2 %>% gt() %>%
   tab_style(style = cell_text(v_align= "top"), locations = cells_body()) %>%
   tab_options(table.width = pct(100), data_row.padding = px(3))
 ```
+
 
 ## Background factors 
 
@@ -694,35 +720,35 @@ Beyond just listing the relevant pressures the experts also had to characterise 
 
 ```{r}
 #| label: tbl-press-list
-#| tbl-cap: "The ten most most commmon active (ongoing) pressures identified during the assessments (N: number of assessments where the given pressure was identified; ma: mammals, fa= fishes & amphibians, im= insects and molluscs, vp: vascular plants, mo: mosses, ht: habitat types)"
+#| tbl-cap: "The 20 most most commmon active (ongoing) pressures identified during the assessments (N: number of assessments where the given pressure was identified; ma: mammals, fa= fishes & amphibians, im= insects and molluscs, vp: vascular plants, mo: mosses, ht: habitat types)"
 #| warning: false
 #| echo: false
 
-tmp1 <- dat$sp %>% 
-  select(ftid, fgrp, rl_navn, bgr, starts_with("D1a"), D1b01, D1c) %>%  #D1b01, D1c: to bring back the IAS 
-  bind_rows(select(dat$ha, ftid, fgrp, bgr, starts_with("D1a"), D1b01, D1c)) %>%
-  mutate(D1a21= if_else(is.na(D1b01),NA,"PI01"), D1a21.2=if_else(is.na(D1b01),"","pres"),
-         D1a22= if_else(is.na(D1c),NA,"PI02"), D1a22.2= if_else(is.na(D1c),"","pres")) %>% 
-  select(-D1b01,-D1c) %>% #TODO: next time keep these codes in the list :(
-  pivot_longer(starts_with("D1a")) %>%
-  separate_wider_delim(name, ".", names=c("n_tmp", "subcol"), too_few="align_start") %>%
-  mutate(subcol= subcol %>% replace_na("1") %>% str_c("s",.)) %>%
-  pivot_wider(names_from=subcol, values_from=value) %>%
-  filter(!is.na(s1)) 
+tmp1a <- dat2$sprp %>% 
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, fgrp, rl_navn, bgr, s1=S_8_1_a_pressure_code, s2=S_8_1_b_timing) #%>%  
 
-# tmp1 %>% 
-#   filter(str_detect(s2,"pres")) %>% 
-#   group_by(s1) %>% summarise(N=n()) %>% 
-#   arrange(desc(N)) %>% 
+tmp1 <- dat2$harp %>% 
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, fgrp, rl_navn, bgr, s1=H_7_1_a_pressure_code, s2=H_7_1_b_timing) %>%  
+  bind_rows(tmp1a)
+
+
+# tmp1 %>%
+#   # filter(str_detect(s2,"pres")) %>%
+#   group_by(s1) %>% summarise(N=n()) %>%
+#   arrange(desc(N)) %>%
 #   mutate(`Pressure name`= h_lkp(s1, pmcodes)) %>%
 #   select(Code=s1, `Pressure name`, N) %>%
-#   slice(1:20) %>%
+#   slice(1:20) %>% print
 
-# Create a custom split html label for the nanoplot column using flexbox
+# Create a custom split html label for the nanoplot column using flexbox (--> only works in html engine!)
 nano_label_features <- html("
-  <div style='text-align: center; border-bottom: 1px solid #ccc; font-size: 12px;  
+  <div style='text-align: center; border-bottom: 1px solid #ccc; font-size: 12px;
   padding-bottom: 3px; margin-bottom: 3px;'>
-    Feature groups 
+    Artsgrupper
   </div>
   <div style='width: 90px; margin: 0 auto; display: flex; font-size: 8px; font-weight: normal; line-height: 1;'>
     <div style='flex: 1; text-align: center; min-width: 0;'>ma</div>
@@ -732,10 +758,11 @@ nano_label_features <- html("
     <div style='flex: 1; text-align: center; min-width: 0;'>mo</div>
     <div style='flex: 1; text-align: center; min-width: 0;'>ht</div>
   </div>")
+# nano_label_features <- "Nano-header-plch" # for non-html engines
 
 tmp0 <- fgrps_en %>% {.[-length(.)]} %>% names %>% set_names
 tmp1 %>%
-  filter(str_detect(s2,"pres")) %>% 
+  filter(str_detect(s2, "ongoing")) %>%
   group_by(s1) %>% summarise(N=n(), fgrps= list(map_int(tmp0, \(x) sum(fgrp==x)))) %>% 
   arrange(desc(N)) %>%
   mutate(label= h_lkp(s1, pmcodes)) %>%
@@ -744,39 +771,45 @@ tmp1 %>%
   sub_missing() %>%
   cols_nanoplot(columns= fgrps, plot_type= "bar", 
     options= nanoplot_options(data_bar_fill_color= "steelblue", data_bar_stroke_color= "transparent")) %>%
-  cols_label(s1="Code", label="Pressure name", nanoplots=nano_label_features) %>%
+  cols_label(s1="Kode", label="Påvirkningsfaktor beskrivelse (en)", nanoplots=nano_label_features) %>%
   cols_align("center") %>% cols_align("left", columns= label) %>%
   cols_width(label ~ pct(80)) %>% # to make this column greedy
   tab_style(style = cell_text(weight= "bold"), locations = cells_column_labels()) %>%
   tab_style(style = cell_text(v_align= "top"), locations = cells_body()) %>%
-  tab_options(table.width = pct(100), data_row.padding = px(3))
+  tab_options(table.width = pct(100)) %>% #the combo of this + the greedy col only works in the final output (inline it masks the nanoplots)
+  tab_options(data_row.padding = px(3))
 
+  
 ```
 
 
 ### Main conservation measures
 
-Similarly to the pressures, the experts also identified the morst important conservation measures for each feature in each biogeographic region. This included all "ongoing" (actively implemented) conservation measures, as well as any clearly useful, but not yet implemented measures. In addition, for each already implemented measure the experts also documented if the measures were implemented only within the Emerald sites, or also beyond them. @tbl-meas-list presents an overview of the most frequently applied conservation measures. 
+Similarly to the pressures, the experts also identified the most important conservation measures for each feature in each biogeographic region. This included all "ongoing" (actively implemented) conservation measures, as well as any clearly useful, but not yet implemented measures. In addition, for each already implemented measure the experts also documented if the measures were implemented only within the Emerald sites, or also beyond them. @tbl-meas-list presents an overview of the most frequently mentioned conservation measures. 
 
 ```{r}
 #| label: tbl-meas-list
-#| tbl-cap: "The ten most frequently implemented conservation measures, as identified during the assessments (N: number of assessments where the given measure was identified; ma: mammals, fa= fishes & amphibians, im= insects and molluscs, vp: vascular plants, mo: mosses, ht: habitat types)"
+#| tbl-cap: "The ten most relevant conservation measures, as identified during the assessments (N: number of assessments where the given measure was identified; ma: mammals, fa: fishes & amphibians, im: insects and molluscs, vp: vascular plants, mo: mosses, ht: habitat types)"
 #| warning: false
 #| echo: false
 
-tmp1.meas <- dat$sp %>% 
-  select(ftid, fgrp, rl_navn, bgr, starts_with("D2c")) %>%   
-  bind_rows(select(dat$ha, ftid, fgrp, bgr, starts_with("D2c"))) %>%
-  pivot_longer(starts_with("D2c")) %>%
-  separate_wider_delim(name, ".", names=c("n_tmp", "subcol"), too_few="align_start") %>%
-  mutate(subcol= subcol %>% replace_na("1") %>% str_c("s",.)) %>%
-  pivot_wider(names_from=subcol, values_from=value) %>%
-  filter(!is.na(s1)) 
+tmp1a <- dat2$sprm %>% 
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, fgrp, rl_navn, bgr=region_code, s1=S_9_6_measure_code, s2, s4) #%>%  
+
+tmp1.meas <- dat2$harm %>% 
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  select(ftid, fgrp, rl_navn, bgr=region_code, s1=H_8_6_measure_code, s2, s4) %>%  
+  bind_rows(tmp1a)
+  # filter(!is.na(s1)) 
 
 # nano_label_features: this is recycled from the previous chunk
 tmp0 <- fgrps_en %>% {.[-length(.)]} %>% names %>% set_names
 tmp1.meas %>%
-  filter(s4=="T") %>%
+  filter(!is.na(s1)) %>%
+  # filter(s4=="T") %>%  # filter used in the previous ver 
   group_by(s1) %>% summarise(N=n(), fgrps= list(map_int(tmp0, \(x) sum(fgrp==x)))) %>% 
   arrange(desc(N)) %>%
   mutate(label= h_lkp(s1, pmcodes)) %>%
@@ -785,12 +818,13 @@ tmp1.meas %>%
   sub_missing() %>%
   cols_nanoplot(columns= fgrps, plot_type= "bar", 
     options= nanoplot_options(data_bar_fill_color= "steelblue", data_bar_stroke_color= "transparent")) %>%
-  cols_label(s1="Code", label="Conservation measure name", nanoplots=nano_label_features) %>%
+  cols_label(s1="Kode", label="Bevaringstiltak beskrivelse (en)", nanoplots=nano_label_features) %>%
   cols_align("center") %>% cols_align("left", columns= label) %>%
-  cols_width(label ~ pct(80)) %>%
+  cols_width(label ~ pct(80)) %>% # to make this column greedy
   tab_style(style = cell_text(weight= "bold"), locations = cells_column_labels()) %>%
   tab_style(style = cell_text(v_align= "top"), locations = cells_body()) %>%
-  tab_options(table.width = pct(100), data_row.padding = px(3))
+  tab_options(table.width = pct(100)) %>% #the combo of this + the greedy col only works in the final output (inline it masks the nanoplots)
+  tab_options(data_row.padding = px(3))
 
 ```
 
@@ -806,14 +840,18 @@ Protected areas, and in particular the Emerald Network is assumed to provide sub
 #| warning: false
 #| echo: false
 
-para <- list(Pop=c("A4a","A4c"), H4s=c("C3a","C3b"), Are= c("A2a","A2c"), SnF=c("C3a","C3b"))
-tmp <-  c(Pop="sp", H4s="sp", Are="ha", SnF="ha")
 lov <-  c(better= "Better *within* Emerald", same= "Same trend within/beyond", 
           worse=  "Better *beyond* Emerald", unk=  "Unknown (at least partly)") 
 
+# para <- list(Pop=c("A4a","A4c"), H4s=c("C3a","C3b"), Are= c("A2a","A2c"), SnF=c("C3a","C3b"))
+para <- list(Pop=c("S_6_10","S_12_6"), H4s=c("S_7_4","S_12_8"), Are= c("H_5_7","H_11_4"), SnF=c("H_6_4","H_11_6")) %>%
+  map(\(y) map_chr(y, \(x) str_subset(c(names(dat2$spr),names(dat2$har)), str_c("^",x))[1]))
+tmp <-  c(Pop="spr", H4s="spr", Are="har", SnF="har")
+
 tmp2 <- para %>%
-  imap(\(x,i) dat[[tmp[i]]] %>% filter(t_ass=="full") %>% 
-         mutate(c_reg= !!rlang::sym(x[1]), c_eme= !!rlang::sym(x[2]))) %>%
+  imap(\(x,i) dat2[[tmp[i]]] %>% mutate(c_reg= !!rlang::sym(x[1]), c_eme= !!rlang::sym(x[2]))) %>%
+  map( \(x)   x %>% filter(!is.na(c_reg)) %>% filter(c_reg!="")) %>%
+  map( \(x)   x %>% mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn)))) %>%
   map( \(x)   x %>% mutate(c_eme=str_sub(c_eme,1,1), c_reg=str_sub(c_reg,1,1))) %>%
   imap(\(x,i) x %>% mutate(para=i, cc= str_c(c_eme, c_reg))) %>%
   map( \(x)   x %>% group_by(para, cc) %>% summarise(N=n(), spp= list(sort(unique(rl_navn))), .groups="drop")) %>%
@@ -872,10 +910,10 @@ tmp1.meas %>%
   arrange(desc(N)) %>%
   mutate(label= h_lkp(s1, pmcodes)) %>%
   relocate(s1, label) %>% slice(1:10) %>% 
-  select(-N) %>%
+  # select(-N) %>%
   gt() %>%
   sub_missing() %>%
-  cols_label(s1="Code", label="Conservation measure name", #N=md("N~tot~"), 
+  cols_label(s1="Code", label="Conservation measure name", N=md("N~tot~"), 
              i=md("N~in~"), io=md("N~i.o~"), o=md("N~out~")) %>%
   cols_align("center") %>% cols_align("left", columns= label) %>%
   # cols_width(label ~ pct(80)) %>%
@@ -921,15 +959,74 @@ knitr::include_graphics(here::here("img","fjellrev_photo.jpeg"))
 
 ## Data availability
 
-(?) TODO/TBC...
+Resolution 8 Assessments for the Bern Convention rely on several types of data. The most important data types include detailed *spatial data* characterising the actual distribution of the studied species and habitat types, reliable *quantitative data* about the actual population size (species) or area extent (habitats), and a reliable quantitative *reference level* for this population/area. While spatial distribution and quantitative population/extent can change rapidly, and thus demand careful monitoring, the reference levels only need to established once (e.g. using population viability modelling techniques), and then they can be reused in subsequent reporting cycles. These data types are also necessary for proper conservation planning and management at the national level. In @tbl-data-avail we provide an overview of the availability of these key data types.[^meth] 
+
+[^meth]: For the main quantitative fields the experts had to characterise the methodology and their level of certainty (high/medium/low "quality of information"). Here we started out from these responses.  
+
+```{r}
+#| label: tbl-data-avail
+#| tbl-cap: "The studied species and habitats grouped according to data availability" 
+#| warning: false
+#| echo: false
+
+lkp_met1 <- c(estimatePartial="L", completeSurvey="M") 
+lkp_met2 <- c(absentData="L", estimateExpert="L", estimatePartial="M", completeSurvey="H") 
+
+lov <-  c(MH1= "Reliable quantitative data with ref.levels",
+          MH0= "Reliable quantitative data without ref.levels",
+          MM1= "Partial/expert data with ref.levels",
+          MM0= "Partial/expert data without ref.levels",
+          ML0= "Spat. distribution data & qualitative estimates",
+          LL0= "No or very fragmented data")
+
+tmp1a <- dat2$sp %>% select(ftid, spdm= S_2_4_distribution_method) %>%
+  bind_rows(dat2$ha %>% select(ftid, spdm= H_2_3_distribution_method)) %>%
+  mutate(spdm= lkp_met1[spdm] %>% replace_na("L") %>% unname)
+
+tmp1b <- dat2$spr %>% select(ftid, bgr, cvm= S_6_7_population_size_method) %>%
+  bind_rows(dat2$har %>% select(ftid, bgr, cvm= H_5_4_area_method)) %>%
+  mutate(cvm= lkp_met2[cvm] %>% replace_na("L") %>% unname %>% fct(c("L","M","H")) %>% ordered) %>%
+  group_by(ftid) %>% summarise(cvm=max(cvm))
+
+tmp1c <- dat2$spr %>% select(ftid, bgr, frvm= S_6_18_c_favourable_reference_population_unknown) %>%
+  bind_rows(dat2$har %>% select(ftid, bgr, frvm= H_5_15_c_favourable_reference_area_unknown)) %>%
+  mutate(frvm= if_else(frvm=="Yes","0","1") %>% replace_na("0")) %>% 
+  # mutate(frvm2= frvm2 %>% replace_na("L") %>% fct(names(lov2_met)) %>% ordered) %>%
+  group_by(ftid) %>% summarise(frvm=max(frvm))
+
+tmp1 <- tmp1a %>%
+  full_join(tmp1b) %>% full_join(tmp1c) %>%
+  mutate(cvm= if_else(spdm=="L", "L", cvm)) %>% #if there is ~no spatial data then pop/area cannot be properly estimated either
+  mutate(frvm= if_else(cvm=="L", "0", frvm)) %>% #if there is ~no data on pop/area then the frv should not be taken seriously
+  mutate(ccc= str_c(spdm, cvm, frvm) %>% fct(names(lov))) %>%
+  mutate(fgrp= h_lkp(ftid, select(chklw, ftid, fgrp)) %>% fct(names(fgrps_en))) %>%
+  mutate(rl_navn= h_lkp(ftid, select(chklw, ftid, rl_navn))) %>%
+  group_by(ccc) %>% summarise(N=n(), feat= str_c(rl_navn, collapse=", ") %>% h_cap1st) %>%
+  arrange(ccc)
+
+tmp1 %>% 
+  mutate(ccc= lov[ccc]) %>%
+  gt() %>% 
+  cols_label(ccc= "Data availability", feat= "Features (species, habitat types)") %>%
+  cols_align("left") %>%
+  sub_missing() %>%
+  tab_style(style = cell_text(weight= "bold"), locations = cells_column_labels()) %>%
+  tab_style(style = cell_text(v_align= "top"), locations = cells_body()) %>%
+  tab_options(table.width = pct(100), data_row.padding = px(3))
+
+```
+
+For most of the species, data availability is a major limitation for Bern Convention assessments. There are relatively few species with «optimal» data availability, including mainly charismatic and economically important mammal and fish species with dedicated monitoring programmes. For most of the Bern species and habitat types there are some spatial distribution data available (covering more than 75% of the presumable distribution of the species), but there are no representative monitoring programmes. For 18 species and habitat types, however, even their basic spatial distribution is poorly known. For habitat types this is often also related to the differences between the Norwegian national habitat typologies (e.g. NiN 2.3 or 3.0) and the EUNIS typology used by the Bern Convention. 
 
 
 ## References
 
-* Jackson, C., Ulvund, K., Rød-Eriksen L., Furnes, M.W., Arntsen, L., Mjøen, T., Spets, M., Jensen, M.Ø., Kleven, O., Flagstad, Ø. & Eide, N.E. 2025. Fjellrev i Norge 2025 - Tiltak, status og anbe-falinger. NINA Rapport 2698. Norsk institutt for naturforskning.
+* Jackson, C., Ulvund, K., Rød-Eriksen L., Furnes, M.W., Arntsen, L., Mjøen, T., Spets, M., Jensen, M.Ø., Kleven, O., Flagstad, Ø. & Eide, N.E. 2025. Fjellrev i Norge 2025 - Tiltak, status og anbefalinger. NINA Rapport 2698. Norsk institutt for naturforskning.
 * TODO...
 
 
 ## Annexes
 
-* A table with all species & habitats (incl latin names) and their main conclusions
+* A checklist overview (a) table with all species & habitats (incl latin & norsk names, rødlista status, etc) plus the list of the selected BGRs (occurrence code PRE: 2019 final, 2025 initial, 2025 final)  
+* The "fact sheets" produced for the individual species/habitats
+
